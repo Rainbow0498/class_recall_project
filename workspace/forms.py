@@ -1,5 +1,5 @@
 from django import forms
-from .models import Student, ExamRecord
+from .models import Student, ExamRecord, FeedbackSettings
 
 class StudentForm(forms.ModelForm):
     class Meta:
@@ -50,3 +50,24 @@ class LessonEditForm(forms.Form):
         if data.get("start_time") and data.get("end_time") and data["end_time"] <= data["start_time"]:
             self.add_error("end_time", "结束时间必须晚于开始时间。")
         return data
+
+class NotesForm(forms.Form):
+    lesson_contents = forms.CharField(label="本次上课内容", max_length=6000, widget=forms.Textarea(attrs={"rows":4,"placeholder":"例如：拉马克学说、达尔文学说"}))
+    performance = forms.CharField(label="学生表现", max_length=6000, widget=forms.Textarea(attrs={"rows":5,"placeholder":"例如：12题对11题；适应的相对性还需要巩固"}))
+    homework = forms.CharField(label="课后作业", max_length=3000, widget=forms.Textarea(attrs={"rows":3,"placeholder":"例如：我发的练习。没有作业时可填写“本次无作业”。"}))
+
+class FeedbackForm(forms.Form):
+    text = forms.CharField(label="最终反馈", max_length=20000, widget=forms.Textarea(attrs={"class":"feedback-text","rows":16}))
+    version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
+    curriculum = forms.CharField(label="教材", required=False, max_length=30)
+    chapter = forms.CharField(label="章节", required=False, max_length=100)
+    content = forms.CharField(label="主要内容", required=False, max_length=2000, widget=forms.Textarea(attrs={"rows":2}))
+    next_goal = forms.CharField(label="下次课目标（仅内部备课，可留空）", required=False, max_length=2000, widget=forms.Textarea(attrs={"rows":2}))
+    update_progress = forms.BooleanField(required=False)
+
+class PreferencesForm(forms.ModelForm):
+    model = forms.RegexField(label="模型名称", regex=r"^[a-zA-Z0-9._:/-]{1,100}$")
+    class Meta:
+        model=FeedbackSettings
+        fields=["body_template","instructions","model"]
+        widgets={"body_template":forms.Textarea(attrs={"rows":8}),"instructions":forms.Textarea(attrs={"rows":5})}

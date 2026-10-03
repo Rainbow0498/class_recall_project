@@ -1,9 +1,12 @@
 from django.contrib.auth import views as auth
 from django.urls import path
-from . import views, students, scheduling
+from . import views, students, scheduling, feedback
 urlpatterns = [
+    path("settings/", feedback.settings_page, name="settings"),
+    path("settings/test/", feedback.test_generation, name="test_generation"),
+    path("lessons/<int:pk>/generate/", feedback.generate, name="generate_feedback"),
     path("lessons/new/", scheduling.lesson_create, name="lesson_new"),
-    path("lessons/<int:pk>/", scheduling.lesson_detail, name="lesson_detail"),
+    path("lessons/<int:pk>/", feedback.lesson_detail, name="lesson_detail"),
     path("lessons/<int:pk>/edit/", scheduling.lesson_edit, name="lesson_edit"),
     path("lessons/<int:pk>/cancel/", scheduling.lesson_cancel, name="lesson_cancel"),
     path("lessons/<int:pk>/restore/", scheduling.lesson_restore, name="lesson_restore"),
