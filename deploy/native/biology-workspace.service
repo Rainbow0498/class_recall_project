@@ -1,0 +1,28 @@
+[Unit]
+Description=Biology teaching workspace
+After=network.target
+
+[Service]
+Type=simple
+User=biology
+Group=biology
+WorkingDirectory=/opt/biology-workspace
+EnvironmentFile=/etc/biology-workspace.env
+ExecStartPre=/bin/bash /opt/biology-workspace/deploy/native/run.sh migrate --noinput
+ExecStartPre=/bin/bash /opt/biology-workspace/deploy/native/run.sh init_teacher
+ExecStartPre=/bin/bash /opt/biology-workspace/deploy/native/run.sh collectstatic --noinput
+ExecStartPre=/bin/bash /opt/biology-workspace/deploy/native/run.sh check --deploy --fail-level WARNING
+ExecStart=/bin/bash /opt/biology-workspace/deploy/native/run.sh serve
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/biology-workspace /opt/biology-workspace/staticfiles
+
+[Install]
+WantedBy=multi-user.target

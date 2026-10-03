@@ -1,4 +1,6 @@
-# Ubuntu 部署说明
+# Ubuntu 部署说明（Docker 方案）
+
+**Docker 不是必须的。** 若想在已有 Ubuntu 服务器上直接运行，使用 [不依赖 Docker 的部署说明](native/README.md)，包含 Python 环境、后台服务、HTTPS、升级与备份步骤。下面保留可选的 Docker 方案；在同一服务器上选择一种方式即可。
 
 应用目标地址：`https://www.gyloveyyb.site`，用户提供的服务器 IP 为 `140.143.124.16`。这份说明不代表服务器已经完成部署。本机没有 Docker，容器构建与证书签发必须在服务器或 CI 中验证。
 

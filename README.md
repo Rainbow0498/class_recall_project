@@ -3,14 +3,14 @@
 给一位高中生物老师使用的课程管理网页，支持电脑和手机。
 
 - 学生档案、教学进度、裸分/赋分记录、目标分和学校，停课归档与恢复。
-- 所有学生周课表与个人课表、单次与有限范围批量排课、冲突确认和系列调课/取消。
+- 所有学生与个人的日历网格课表、点击时段选择起止时间排课、单次与有限范围批量排课、冲突确认和系列调课/取消。
 - 课堂笔记生成可修改的反馈候选、保存最终反馈、复制给家长、明确选择是否更新教学进度。
 - 自定义正文模板、生成要求和模型；AI 密钥仅由后端从私有环境读取。
 - 单老师登录、CSRF 保护、登录限流、编辑版本冲突保护、SQLite 在线备份与离线恢复。
 
 ## 本地运行
 
-需要 Python 3.12。
+需要 Python 3.10 或以上版本，本地验证使用 Python 3.12。
 
 ```bash
 python3 -m venv .venv
@@ -34,4 +34,4 @@ TEACHER_USERNAME=teacher TEACHER_PASSWORD=your-local-password .venv/bin/python m
 
 模型契约测试使用本地假 HTTP 服务，不消耗真实密钥或 API 额度。持续集成会运行测试并构建容器。
 
-正式部署、域名、HTTPS、升级和备份恢复见 [Ubuntu 部署说明](deploy/README.md)。功能设计与实施计划见 `docs/superpowers/`。正式域名为 `www.gyloveyyb.site`；仓库代码完成不代表服务器已经上线。
+在已有 Ubuntu 服务器部署，推荐按 [直接部署说明（无需 Docker）](deploy/native/README.md) 操作；也保留 [Docker 方案](deploy/README.md)。两种方案均包含域名、HTTPS、升级和备份恢复。功能设计与实施计划见 `docs/superpowers/`。正式域名为 `www.gyloveyyb.site`；仓库代码完成不代表服务器已经上线。
