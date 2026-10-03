@@ -67,7 +67,10 @@ class FeedbackForm(forms.Form):
 
 class PreferencesForm(forms.ModelForm):
     model = forms.RegexField(label="模型名称", regex=r"^[a-zA-Z0-9._:/-]{1,100}$")
+    vision_model = forms.RegexField(label="图片课表识别模型", regex=r"^[a-zA-Z0-9._:/-]{1,100}$", required=False, help_text="图片导入使用支持视觉识别的模型，默认 qwen3-vl-flash。")
+    def clean_vision_model(self):
+        return self.cleaned_data.get("vision_model") or self.instance.vision_model
     class Meta:
         model=FeedbackSettings
-        fields=["body_template","instructions","model"]
+        fields=["body_template","instructions","model","vision_model"]
         widgets={"body_template":forms.Textarea(attrs={"rows":8}),"instructions":forms.Textarea(attrs={"rows":5})}

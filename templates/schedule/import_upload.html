@@ -1,0 +1,15 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}图片导入课表 · 青禾{% endblock %}
+{% block content %}
+<a class="breadcrumb" href="{% url 'home' %}">← 返回课程日历</a>
+<header class="page-head"><div><span class="eyebrow">IMPORT TIMETABLE</span><h1>把图片里的课程放进日历</h1><p class="muted">选择图片 → 核对识别结果 → 确认导入</p></div></header>
+<div class="detail-grid"><form method="post" enctype="multipart/form-data" class="card" id="image-upload-form">{% csrf_token %}<input type="hidden" name="action" value="recognize">
+{% if form.errors %}<div class="notice error import-errors" role="alert" tabindex="-1"><h2>图片还没有导入</h2>{{ form.non_field_errors }}{% for field in form %}{% for error in field.errors %}<p><a href="#{{ field.id_for_label }}">{{ field.label }}：{{ error }}</a></p>{% endfor %}{% endfor %}</div>{% endif %}
+{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}<span class="helptext">{{ field.help_text }}</span></div>{% endfor %}
+<p>本次按 <strong>{{ year }} 年</strong>识别，每节课 <strong>2 小时</strong>。</p>
+{% if not configured %}<p class="notice">尚未配置模型密钥。请先在服务器配置百炼密钥，再使用图片导入。</p>{% endif %}
+<button type="submit" class="primary" id="recognize-image" {% if not configured %}disabled{% endif %}>识别课表图片</button><p id="image-upload-status" class="small section" role="status"></p>
+<div id="local-image-preview" hidden><img alt="待识别的课表图片" class="import-image"></div>
+</form><section class="card"><h2>按图片上的行和列排课</h2><p>列标题决定日期，左边的时间决定开始时间。例如 <strong>15:30</strong> 会安排为 <strong>15:30–17:30</strong>。</p><p>有学生姓名的格子才会生成课程。空白格、颜色和勾号会忽略；教师备注也不会加入学生姓名。</p><p>已有学生会复用档案；新学生只添加姓名和年级，成绩与教学进度留空。同一学生同一日期、同一时段的已有课程会跳过。</p><p class="small muted">图片会发送至已配置的百炼视觉模型，识别会产生模型调用费用。原图不长期保存；确认前不会新增学生和课程。</p></section></div>
+<script src="{% static 'image-import.js' %}" defer></script>
+{% endblock %}

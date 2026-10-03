@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<section class="card form-card"><h1>本次导入未保存</h1><p role="alert">数据库正在处理其他修改，请稍后重试。本次没有新增学生或课程。</p><form method="post">{% csrf_token %}<input type="hidden" name="action" value="edit"><input type="hidden" name="confirm_token" value="{{ confirm_token }}"><button class="primary">返回核对并重试</button></form></section>{% endblock %}

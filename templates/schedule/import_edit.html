@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}核对识别结果 · 青禾{% endblock %}
+{% block content %}
+<a class="breadcrumb" href="{% url 'schedule_import' %}">← 重新选择图片</a>
+<header class="page-head"><div><span class="eyebrow">REVIEW RECOGNITION</span><h1>核对识别结果</h1><p class="muted">{{ year }} 年 · 每节课 2 小时 · 目前尚未新增学生或课程</p></div></header>
+{% if image_url %}<details class="card import-source"><summary>展开原图，对照核对</summary><img src="{{ image_url }}" alt="本次上传的课表原图" class="import-image"></details>{% endif %}
+{% if warnings %}<div class="notice section"><strong>这些内容需要核对</strong><ul>{% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}</ul></div>{% endif %}
+<form method="post" id="image-rows-form">{% csrf_token %}<input type="hidden" name="action" value="preview"><input type="hidden" name="draft_token" value="{{ draft_token }}">{{ formset.management_form }}
+{% if formset.total_error_count %}<div class="notice error import-errors" role="alert" tabindex="-1"><h2>请核对以下内容</h2>{{ formset.non_form_errors }}{% for form in formset %}{{ form.non_field_errors }}{% for field in form %}{% for error in field.errors %}<p><a href="#{{ field.id_for_label }}">{{ field.label }}：{{ error }}</a></p>{% endfor %}{% endfor %}{% endfor %}</div>{% endif %}
+<p class="small muted">可改正识别的姓名、年级、日期和时间，或取消勾选不需要的课程。已有档案的年级和其他信息保持原样。</p>
+<div class="import-rows">{% for form in formset %}<section class="card import-row"><div class="import-row-head"><label class="check-label" for="{{ form.include.id_for_label }}">{{ form.include }}<strong>课程 {{ forloop.counter }}</strong></label><span class="badge import-end">2 小时</span></div><div class="grid-3">{% for field in form %}{% if field.name != 'include' %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endif %}{% endfor %}</div>{{ form.include.errors }}</section>{% endfor %}</div>
+<div class="actions section"><button type="submit" class="primary">检查并预览导入</button><a class="button" href="{% url 'home' %}">暂不导入</a></div>
+</form><script src="{% static 'image-import.js' %}" defer></script>
+{% endblock %}

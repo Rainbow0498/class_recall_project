@@ -60,3 +60,4 @@ class FeedbackSettings(models.Model):
     body_template = models.TextField("反馈正文模板", max_length=6000, default="一、上课内容\n1.……\n二、学生情况\n1.……\n三、课后作业\n……")
     instructions = models.TextField("生成要求", max_length=6000, default="语言自然、具体，保留老师语气。整理口语笔记，保留正确率和未掌握的问题，不用套话补充内容。")
     model = models.CharField("模型名称", max_length=100, default="qwen3.7-flash")
+    vision_model = models.CharField("图片课表识别模型", max_length=100, default="qwen3-vl-flash")
