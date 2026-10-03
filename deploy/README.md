@@ -108,7 +108,16 @@ sudo docker compose run --rm --no-deps app python manage.py restore_data --input
 sudo docker compose up -d app
 ```
 
-如果备份来自服务器之外，先在应用运行时用 `docker compose cp` 放入应用的数据目录，再停止应用并恢复。恢复后检查学生数量、课程、反馈和成绩；备份包含老师账号及反馈设置，应使用备份时的登录密码。
+如果备份来自服务器之外，先在应用运行时导入，并给容器中的应用账号读取权限，再停止应用并恢复：
+
+```bash
+sudo docker compose exec app mkdir -p /app/data/backups
+sudo docker compose cp ./backups/实际备份文件名.sqlite3 app:/app/data/backups/imported.sqlite3
+sudo docker compose exec --user root app chown teacher:teacher /app/data/backups/imported.sqlite3
+sudo docker compose exec --user root app chmod 600 /app/data/backups/imported.sqlite3
+```
+
+然后在恢复命令中使用 `/app/data/backups/imported.sqlite3`。恢复后检查学生数量、课程、反馈和成绩；备份包含老师账号及反馈设置，应使用备份时的登录密码。
 
 ## 7. 日常维护
 

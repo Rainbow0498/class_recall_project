@@ -54,3 +54,24 @@ class LoginGuardTests(TestCase):
         self.assertContains(response,'尝试次数过多')
         cache.clear()
         self.assertEqual(self.client.post('/login/',{'username':'teacher','password':'correct-password'}).status_code,302)
+
+class CompleteRestoreTests(TransactionTestCase):
+    def test_restored_records_include_credentials_courses_feedback_and_settings(self):
+        from django.contrib.auth.hashers import check_password
+        from workspace.operations import restore_database
+        Student=apps.get_model('workspace','Student');Lesson=apps.get_model('workspace','Lesson')
+        user=get_user_model().objects.create_user('restored-teacher',password='original-private-password')
+        student=Student.objects.create(name='完整恢复学生',grade='高二',content='遗传规律')
+        series=apps.get_model('workspace','CourseSeries').objects.create(token='restore-series',rule={'weekdays':['0']})
+        lesson=Lesson.objects.create(student=student,series=series,date='2026-10-04',start_time='17:00',end_time='19:00',status='completed',progress_snapshot={'content':'遗传规律'})
+        apps.get_model('workspace','LessonFeedback').objects.create(lesson=lesson,text='恢复后的最终反馈')
+        apps.get_model('workspace','FeedbackSettings').objects.create(pk=1,instructions='恢复后的生成要求')
+        with tempfile.TemporaryDirectory() as folder:
+            source=Path(folder)/'backup.sqlite3';target=Path(folder)/'restored.sqlite3'
+            call_command('backup_data',output=str(source),stdout=StringIO())
+            restore_database(source,target)
+            with sqlite3.connect(target) as db:
+                self.assertEqual(db.execute('select s.name,l.status,f.text from workspace_student s join workspace_lesson l on l.student_id=s.id join workspace_lessonfeedback f on f.lesson_id=l.id').fetchone(),('完整恢复学生','completed','恢复后的最终反馈'))
+                self.assertEqual(db.execute('select instructions from workspace_feedbacksettings where id=1').fetchone()[0],'恢复后的生成要求')
+                self.assertTrue(check_password('original-private-password',db.execute('select password from auth_user where username=?',('restored-teacher',)).fetchone()[0]))
+                self.assertEqual(db.execute('select count(*) from workspace_courseseries').fetchone()[0],1)

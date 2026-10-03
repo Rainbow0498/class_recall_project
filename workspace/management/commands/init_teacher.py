@@ -7,7 +7,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         username = os.environ.get("TEACHER_USERNAME", "").strip()
         password = os.environ.get("TEACHER_PASSWORD", "")
-        if not username or len(password) < 12:
+        if not username or len(password) < 12 or password.startswith("REPLACE_"):
             raise CommandError("请配置 TEACHER_USERNAME 和至少 12 字符的 TEACHER_PASSWORD")
         User = get_user_model()
         if not User.objects.filter(username=username).exists():

@@ -39,7 +39,8 @@ class SchedulingTests(TestCase):
         response=self.client.post(f'/lessons/{lessons[0].pk}/edit/', {'date':'2026-10-06','start_time':'16:00','end_time':'17:00','scope':'future','confirm':'on'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual([str(x.date) for x in Lesson.objects.order_by('pk')],['2026-10-06','2026-10-12','2026-10-20'])
-        self.client.post(f'/lessons/{lessons[0].pk}/cancel/',{'scope':'future','confirm':'on'})
+        preview=self.client.post(f'/lessons/{lessons[0].pk}/cancel/',{'scope':'future'})
+        self.client.post(f'/lessons/{lessons[0].pk}/cancel/',{'preview_token':preview.context['preview_token'],'confirm':'on'})
         self.assertEqual(Lesson.objects.filter(status='cancelled').count(), 2)
         self.assertEqual(Lesson.objects.filter(status='completed').count(), 1)
         self.client.post(f'/lessons/{lessons[0].pk}/restore/',{'confirm':'on'})
@@ -67,3 +68,75 @@ class SchedulingTests(TestCase):
     def test_booking_is_private(self):
         self.client.logout()
         self.assertEqual(self.client.post('/lessons/new/',self.data).status_code,302)
+
+class SchedulingRegressionTests(TestCase):
+    setUp=SchedulingTests.setUp
+    book=SchedulingTests.book
+    def test_edit_preserves_feedback_saved_during_conflict_check(self):
+        from unittest.mock import patch
+        from workspace import scheduling
+        self.book();Lesson=apps.get_model('workspace','Lesson');lesson=Lesson.objects.order_by('date').first()
+        original=scheduling.find_conflicts
+        entered=False
+        def interleave(*args,**kwargs):
+            nonlocal entered
+            if not entered:
+                entered=True
+                self.client.post(f'/lessons/{lesson.pk}/',{'text':'刚保存的反馈','version':0,'next_goal':'新目标','curriculum':'必修2','content':'新进度','update_progress':'on'})
+            return original(*args,**kwargs)
+        with patch('workspace.scheduling.find_conflicts',side_effect=interleave):
+            response=self.client.post(f'/lessons/{lesson.pk}/edit/',{'date':'2026-10-06','start_time':'16:00','end_time':'17:00','scope':'future','confirm':'on'})
+        self.assertEqual(response.status_code,409)
+        lesson.refresh_from_db()
+        self.assertEqual(lesson.status,'completed')
+        self.assertEqual(str(lesson.date),'2026-10-05')
+        self.assertEqual(lesson.next_goal,'新目标')
+        self.assertEqual(lesson.progress_snapshot['content'],'新进度')
+        self.assertEqual(lesson.version,1)
+        self.assertEqual(lesson.feedback.text,'刚保存的反馈')
+        self.assertEqual(str(Lesson.objects.order_by('date').last().date),'2026-10-19')
+
+    def test_proposed_batch_conflicts_require_confirmation(self):
+        Lesson=apps.get_model('workspace','Lesson');Series=apps.get_model('workspace','CourseSeries')
+        series=Series.objects.create(token='regression-series')
+        a=Lesson.objects.create(student=self.student,series=series,date='2026-10-05',start_time='09:00',end_time='11:00')
+        Lesson.objects.create(student=self.student,series=series,date='2026-10-05',start_time='17:00',end_time='19:00')
+        data={'date':'2026-10-05','start_time':'16:00','end_time':'18:00','scope':'future'}
+        response=self.client.post(f'/lessons/{a.pk}/edit/',data)
+        self.assertTrue(response.context['has_conflicts'])
+        response=self.client.post(f'/lessons/{a.pk}/edit/',dict(data,confirm='on'))
+        self.assertEqual(response.status_code,200)
+        response=self.client.post(f'/lessons/{a.pk}/edit/',dict(data,confirm='on',accept_conflicts='on'))
+        self.assertEqual(response.status_code,302)
+
+    def test_cancel_preview_lists_actual_range_and_protects_newly_completed(self):
+        self.book();Lesson=apps.get_model('workspace','Lesson');lessons=list(Lesson.objects.order_by('date'))
+        lessons[1].status='completed';lessons[1].save()
+        url=f'/lessons/{lessons[0].pk}/cancel/'
+        preview=self.client.post(url,{'scope':'future'})
+        self.assertContains(preview,'2026.10.19')
+        self.assertEqual(len(preview.context['targets']),2)
+        self.assertEqual(Lesson.objects.filter(status='cancelled').count(),0)
+        token=preview.context['preview_token']
+        self.client.post(f'/lessons/{lessons[0].pk}/',{'text':'已完成反馈','version':0})
+        response=self.client.post(url,{'confirm':'on','preview_token':token})
+        self.assertEqual(response.status_code,409)
+        self.assertEqual(Lesson.objects.filter(status='cancelled').count(),0)
+
+    def test_cancel_transaction_preserves_concurrently_saved_feedback(self):
+        from unittest.mock import patch
+        from workspace import scheduling
+        self.book();lesson=apps.get_model('workspace','Lesson').objects.order_by('date').first()
+        url=f'/lessons/{lesson.pk}/cancel/'
+        preview=self.client.post(url,{'scope':'future'})
+        self.assertIn('preview_token',preview.context)
+        token=preview.context['preview_token']
+        original=scheduling.scoped_lessons
+        def interleave(*args,**kwargs):
+            targets=original(*args,**kwargs)
+            self.client.post(f'/lessons/{lesson.pk}/',{'text':'刚完成的课','version':0})
+            return targets
+        with patch('workspace.scheduling.scoped_lessons',side_effect=interleave):
+            response=self.client.post(url,{'confirm':'on','preview_token':token})
+        self.assertEqual(response.status_code,409)
+        lesson.refresh_from_db();self.assertEqual(lesson.status,'completed');self.assertEqual(lesson.version,1)

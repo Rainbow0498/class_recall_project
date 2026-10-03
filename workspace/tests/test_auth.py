@@ -27,3 +27,10 @@ class AuthTests(TestCase):
 
     def test_health_exposes_no_configuration(self):
         self.assertJSONEqual(self.client.get("/health/").content, {"status": "ok"})
+
+    def test_initialization_rejects_example_password(self):
+        from django.core.management.base import CommandError
+        with patch.dict(os.environ, {'TEACHER_USERNAME':'example-user','TEACHER_PASSWORD':'REPLACE_WITH_A_UNIQUE_PASSWORD_AT_LEAST_12_CHARACTERS'}):
+            with self.assertRaises(CommandError):
+                call_command('init_teacher')
+        self.assertFalse(get_user_model().objects.filter(username='example-user').exists())
