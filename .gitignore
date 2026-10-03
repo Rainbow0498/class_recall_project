@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+data/
+staticfiles/
+.superpowers/
+test-results/
+*.sqlite3
+*.sqlite3-*

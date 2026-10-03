@@ -1,0 +1,7 @@
+{% load static %}<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}生物教学工作台{% endblock %}</title><link rel="stylesheet" href="{% static 'app.css' %}"><script src="{% static 'app.js' %}" defer></script></head>
+<body><a class="skip" href="#main">跳到主要内容</a>
+{% if user.is_authenticated %}<aside class="sidebar"><a class="brand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 5C12 2 3 11 7 22c12 4 21-4 19-17Z" fill="currentColor"/><path d="M6 27 22 11" stroke="#fff" stroke-width="2"/></svg><span>青禾<span class="brand-sub">生物教学工作台</span></span></a>
+<nav aria-label="主导航"><a href="/" {% if request.path == '/' %}aria-current="page"{% endif %}>本周课表</a><a href="/students/" {% if '/students/' in request.path %}aria-current="page"{% endif %}>学生档案</a><a href="/settings/" {% if request.path == '/settings/' %}aria-current="page"{% endif %}>反馈设置</a></nav>
+<div class="sidebar-foot"><span class="small">每一堂课，都有迹可循。</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button" type="submit">退出登录</button></form></div></aside>{% endif %}
+<main id="main" class="{% if user.is_authenticated %}main{% else %}public-main{% endif %}">{% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main></body></html>
