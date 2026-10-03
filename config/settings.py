@@ -4,7 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 SECRET_KEY = os.environ.get("SECRET_KEY", "development-only-change-before-deploy")
-if not DEBUG and (SECRET_KEY.startswith("development-") or len(SECRET_KEY) < 50):
+if not DEBUG and (SECRET_KEY.startswith(("development-", "REPLACE_")) or len(SECRET_KEY) < 50):
     raise ImproperlyConfigured("生产环境必须设置至少 50 字符的 SECRET_KEY")
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://www.gyloveyyb.site").split(",")

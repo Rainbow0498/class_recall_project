@@ -1,5 +1,6 @@
 from django.contrib.auth import views as auth
 from django.urls import path
+from .authentication import TeacherLoginView
 from . import views, students, scheduling, feedback
 urlpatterns = [
     path("settings/", feedback.settings_page, name="settings"),
@@ -20,6 +21,6 @@ urlpatterns = [
     path("students/<int:pk>/exams/<int:exam_pk>/delete/", students.exam_delete, name="exam_delete"),
     path("", scheduling.calendar, name="home"),
     path("health/", views.health, name="health"),
-    path("login/", auth.LoginView.as_view(), name="login"),
+    path("login/", TeacherLoginView.as_view(), name="login"),
     path("logout/", auth.LogoutView.as_view(), name="logout"),
 ]

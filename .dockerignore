@@ -1,0 +1,14 @@
+.git
+.venv
+.env
+.env.*
+.superpowers
+__pycache__
+*.pyc
+*.sqlite3*
+data
+backups
+staticfiles
+test-results
+*.jpg
+.DS_Store
