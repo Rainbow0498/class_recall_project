@@ -140,3 +140,42 @@ class SchedulingRegressionTests(TestCase):
             response=self.client.post(url,{'confirm':'on','preview_token':token})
         self.assertEqual(response.status_code,409)
         lesson.refresh_from_db();self.assertEqual(lesson.status,'completed');self.assertEqual(lesson.version,1)
+
+class CalendarSelectionTests(TestCase):
+    setUp=SchedulingTests.setUp
+
+    def test_clickable_calendar_slots_and_mobile_day_grid(self):
+        response=self.client.get('/?week=2026-10-05&day=2026-10-07')
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(str(response.context['selected_day']),'2026-10-07')
+        self.assertEqual(response.context['days'][0]['slots'][0]['start'],'08:00')
+        self.assertEqual(response.context['days'][0]['slots'][0]['end'],'10:00')
+        self.assertContains(response,'id="slot-dialog"')
+        self.assertContains(response,'选择时段安排课程')
+        self.assertContains(response,'start=08%3A00')
+        self.assertNotContains(response,'今天没有安排课程，留一点时间给备课。')
+
+    def test_grid_link_prefills_valid_date_and_time_range(self):
+        response=self.client.get(f'/lessons/new/?date=2026-10-07&start=14:30&end=16:30&student={self.student.pk}')
+        initial=response.context['form'].initial
+        self.assertEqual(str(initial['start_date']),'2026-10-07')
+        self.assertEqual(initial['start_time'],'14:30')
+        self.assertEqual(initial['end_time'],'16:30')
+        self.assertEqual(int(initial['student']),self.student.pk)
+
+    def test_invalid_slot_parameters_do_not_break_form(self):
+        response=self.client.get('/lessons/new/?date=bad&start=99:99&end=01:00')
+        self.assertEqual(response.status_code,200)
+        self.assertNotEqual(response.context['form'].initial.get('start_date'),'bad')
+        self.assertEqual(response.context['form'].initial['start_time'],'17:30')
+        self.assertEqual(response.context['form'].initial['end_time'],'19:30')
+        response=self.client.get('/lessons/new/',{'start':'14:30+08:00','end':'16:30'})
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.context['form'].initial['start_time'],'17:30')
+
+    def test_late_evening_slot_stays_within_day(self):
+        apps.get_model('workspace','Lesson').objects.create(student=self.student,date='2026-10-05',start_time='23:00',end_time='23:59')
+        response=self.client.get('/?week=2026-10-05')
+        slot=response.context['days'][0]['slots'][-1]
+        self.assertEqual(slot['start'],'23:30')
+        self.assertEqual(slot['end'],'23:59')

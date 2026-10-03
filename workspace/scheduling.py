@@ -1,5 +1,7 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 from uuid import uuid4
+from urllib.parse import urlencode
+from django.urls import reverse
 from types import SimpleNamespace
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -54,7 +56,7 @@ def layout_day(lessons, start_hour=8):
             ends[col]=minute(lesson.end_time)
             positioned.append((lesson,col))
         for lesson,col in positioned:
-            result.append({"lesson":lesson,"left":round(col*100/len(ends),4),"width":round(100/len(ends),4),"top":round((minute(lesson.start_time)-start_hour*60)*44/60,2),"height":max(22,round((minute(lesson.end_time)-minute(lesson.start_time))*44/60,2))})
+            result.append({"lesson":lesson,"left":round(col*100/len(ends),4),"width":round(100/len(ends),4),"top":round((minute(lesson.start_time)-start_hour*60)*88/60,2),"height":max(22,round((minute(lesson.end_time)-minute(lesson.start_time))*88/60,2))})
     return result
 
 
@@ -71,17 +73,43 @@ def calendar(request):
     rows=list(lessons)
     start_hour=min([8]+[x.start_time.hour for x in rows])
     end_hour=min(24,max([22]+[x.end_time.hour+(1 if x.end_time.minute else 0) for x in rows]))
+    try: selected_day=date.fromisoformat(request.GET.get("day", ""))
+    except ValueError: selected_day=timezone.localdate()
+    if not start <= selected_day < start+timedelta(days=7): selected_day=start
     days=[]
     for i in range(7):
         day=start+timedelta(days=i)
         entries=[x for x in rows if x.date==day]
-        days.append({"date":day,"label":"周"+"一二三四五六日"[i],"today":day==timezone.localdate(),"lessons":entries,"layout":layout_day(entries,start_hour)})
-    return render(request,"schedule/calendar.html",{"days":days,"week":start,"prev":start-timedelta(days=7),"next":start+timedelta(days=7),"students":Student.objects.all(),"selected_student":student_id,"lesson_count":len(rows),"hours":range(start_hour,end_hour+1),"grid_height":(end_hour-start_hour)*44,"cancelled":Lesson.objects.filter(date__gte=start,date__lt=start+timedelta(days=7),status="cancelled").filter(**({"student_id":student_id} if student_id.isdigit() else {})).select_related("student")})
+        slots=[]
+        for value in range(start_hour*60,end_hour*60,30):
+            start_time=f"{value//60:02d}:{value%60:02d}"
+            end_value=min(value+120,1439)
+            end_time=f"{end_value//60:02d}:{end_value%60:02d}"
+            query={"date":day.isoformat(),"start":start_time,"end":end_time}
+            if student_id.isdigit(): query["student"]=student_id
+            slots.append({"start":start_time,"end":end_time,"url":reverse("lesson_new")+"?"+urlencode(query)})
+        days.append({"date":day,"label":"周"+"一二三四五六日"[i],"today":day==timezone.localdate(),"active":day==selected_day,"lessons":entries,"layout":layout_day(entries,start_hour),"slots":slots})
+    return render(request,"schedule/calendar.html",{"days":days,"week":start,"selected_day":selected_day,"prev":start-timedelta(days=7),"next":start+timedelta(days=7),"students":Student.objects.all(),"active_students":Student.objects.filter(archived=False),"selected_student":student_id,"lesson_count":len(rows),"hours":range(start_hour,end_hour+1),"grid_height":(end_hour-start_hour)*88,"cancelled":Lesson.objects.filter(date__gte=start,date__lt=start+timedelta(days=7),status="cancelled").filter(**({"student_id":student_id} if student_id.isdigit() else {})).select_related("student")})
+
+
+def slot_initial(request):
+    try: day=date.fromisoformat(request.GET.get("date", ""))
+    except ValueError: day=timezone.localdate()
+    initial={"start_date":day,"student":request.GET.get("student"),"start_time":"17:30","end_time":"19:30"}
+    try:
+        start=time.fromisoformat(request.GET.get("start", ""))
+        end=time.fromisoformat(request.GET.get("end", ""))
+        if start.tzinfo is None and end.tzinfo is None and not start.second and not end.second and not start.microsecond and not end.microsecond and end>start:
+            initial.update(start_time=start.strftime("%H:%M"),end_time=end.strftime("%H:%M"))
+    except ValueError:
+        pass
+    return initial
+
 
 
 @login_required
 def lesson_create(request):
-    initial={"start_date":request.GET.get("date",timezone.localdate().isoformat()),"student":request.GET.get("student")}
+    initial=slot_initial(request)
     raw=request.POST or None
     token=request.POST.get("preview_token", "")
     nonce=uuid4().hex
