@@ -30,7 +30,7 @@ def student_edit(request, pk=None):
 @login_required
 def student_detail(request, pk):
     student = get_object_or_404(Student, pk=pk)
-    return render(request, "students/detail.html", {"student":student, "exam_form":ExamForm(), "exams":student.exams.all()})
+    return render(request, "students/detail.html", {"student":student, "exam_form":ExamForm(), "exams":student.exams.all(), "lessons":student.lessons.all()})
 
 @login_required
 @require_POST

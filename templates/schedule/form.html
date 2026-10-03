@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<a class="breadcrumb" href="/">← 本周课表</a><header class="page-head"><div><h1>安排课程</h1><p class="muted">安排某一天，或选择日期范围与上课日批量排课。</p></div></header><form method="post" class="card form-card">{% csrf_token %}{% include 'fields.html' %}<button class="primary">预览课程安排 →</button></form>{% endblock %}
